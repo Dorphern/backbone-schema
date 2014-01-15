@@ -7,78 +7,120 @@ if (isNode) require('../backbone-schema');
 var TestModel = Backbone.Model.extend()
   , tester;
 
-describe('When a Backbone models has a schema', function () {
+
+describe('Backbone.Model.schema', function () {
 
   beforeEach(function () {
     tester = new TestModel();
   });
 
-  describe('and it has a field that specify type', function () {
+  describe('Field types', function () {
 
     before(function () {
       TestModel.prototype.schema = {
-          type1: 'string'
-        , type2: String
-        , type3: { type: 'string' }
-        , type4: { type: String }
-        , type5: 'number'
-        , type6: Number
-        , type7: { type: 'number' }
-        , type8: { type: Number }
+        string1: String,
+        string3: { type: String }
       };
     });
 
-    describe('and an invalid value has been set, it:', function () {
+    describe('when invalid value', function () {
 
-      it('should not validate when field is a string', function () {
-        tester.set({ type1: 12345678, type5: 'foobar' }, { silent: true });
-        should.exist(tester.validate());
+      it('should not validate when field is a type', function () {
+        tester.set({ string1: 12345678 }, { silent: true });
+        tester.isValid().should.be.false;
       });
 
-      it('should not validate when field is a constructor', function () {
-        tester.set({ type2: 12345678, type6: 'foobar' }, { silent: true });
-        should.exist(tester.validate());
-      });
-
-      it('should not validate when type attribute is a string', function () {
-        tester.set({ type3: 12345678, type7: 'foobar' }, { silent: true });
-        should.exist(tester.validate());
-      });
-
-      it('should not validate when type attribute is a constructor', function () {
-        tester.set({ type4: 12345678, type8: 'foobar' }, { silent: true });
-        should.exist(tester.validate());
+      it('should not validate when type attribute is a type', function () {
+        tester.set({ string3: 12345678 }, { silent: true });
+        tester.isValid().should.be.false;
       });
 
     });
 
-    describe('and a valid value has been set, it:', function () {
+    describe('when valid value', function () {
 
-      it('should validate when field is a string', function () {
-        tester.set({ type1: 'foobar', type5: 12345678 }, { silent: true });
-        should.not.exist(tester.validate());
+      it('should validate when field is a type', function () {
+        tester.set({ string1: 'foobar' }, { silent: true });
+        tester.isValid().should.be.true;
       });
 
-      it('should validate when field is a constructor', function () {
-        tester.set({ type2: 'foobar', type6: 12345678 }, { silent: true });
-        should.not.exist(tester.validate());
+      it('should validate when type attribute is a type', function () {
+        tester.set({ string3: 'foobar' }, { silent: true });
+        tester.isValid().should.be.true;
       });
 
-      it('should validate when type attribute is a string', function () {
-        tester.set({ type3: 'foobar', type7: 12345678 }, { silent: true });
-        should.not.exist(tester.validate());
+    });
+
+    describe('allows for different field types', function() {
+      before(function() {
+        TestModel.prototype.schema = {
+          stringType: String,
+          numberType: Number,
+          dateType: Date,
+          booleanType: Boolean,
+          ArrayType0: Array,
+          ArrayType1: [],
+          ArrayStringType: [String]
+        };
       });
 
-      it('should validate when type attribute is a constructor', function () {
-        tester.set({ type4: 'foobar', type8: 12345678 }, { silent: true });
-        should.not.exist(tester.validate());
-      });
+      var typeTests = [
+        {
+          type: 'String',
+          field: 'stringType',
+          validValue: 'some string',
+          invalidValue: 1234
+        }, {
+          type: 'Number',
+          field: 'numberType',
+          validValue: 1234,
+          invalidValue: true
+        }, {
+          type: 'Date',
+          field: 'dateType',
+          validValue: new Date(),
+          invalidValue: 1234
+        }, {
+          type: 'Boolean',
+          field: 'booleanType',
+          validValue: false,
+          invalidValue: 1234
+        }, {
+          type: 'Array',
+          field: 'ArrayType0',
+          validValue: [0, 1, 2, 3],
+          invalidValue: 1234
+        }, {
+          type: 'Array []',
+          field: 'ArrayType1',
+          validValue: [0, 1, 2, 3],
+          invalidValue: 1234
+        }, {
+          type: 'Array of String',
+          field: 'ArrayStringType',
+          validValue: ['a', 'b', 'c', null],
+          invalidValue: ['d', 0, 1, 2, 3]
+        }
+      ];
+
+      for (var i = 0; i < typeTests.length; i++) {
+        it('should support ' + typeTests[i].type, (function(typeTest) { 
+          return function() {
+            tester.set(typeTest.field, typeTest.validValue);
+            tester.isValid().should.be.true;
+
+            tester.set(typeTest.field, typeTest.invalidValue);
+            tester.isValid().should.be.false;
+          };
+        })(typeTests[i]) );
+      }
 
     });
 
   });
 
-  describe('and it has fields that could be required, it:', function () {
+
+  describe('when field is required', function () {
 
     before(function () {
       TestModel.prototype.schema = {
@@ -90,118 +132,18 @@ describe('When a Backbone models has a schema', function () {
 
     it('should not validate when required fields are missing', function () {
       tester.set({ notRequiredField: 'testing' }, { silent: true });
-      should.exist(tester.validate());
+      tester.isValid().should.be.false;
     });
 
     it('should validate when no required fields are missing', function () {
       tester.set({ requiredField: 'testing' }, { silent: true });
-      should.not.exist(tester.validate());
+      tester.isValid().should.be.true;
     });
 
     it('should validate when unspecified fields are missing', function () {
       tester.set({ requiredField: 'testing' }, { silent: true });
-      should.not.exist(tester.validate());
+      tester.isValid().should.be.true;
     });
-
-  });
-
-  describe('and it has fields that specify choices, it:', function () {
-
-    before(function () {
-      TestModel.prototype.schema = {
-          status: { choices: [ 'online', 'offline', 'away' ] }
-        , mixed: { choices: [ 1, 'test', 5.5 ] }
-      };
-    });
-
-    it('should not validate when an invalid choice has been set', function () {
-      tester.set({ status: 'notonline' }, { silent: true });
-      should.exist(tester.validate());
-    });
-
-    it('should validate when a valid choice has been set', function () {
-      tester.set({ status: 'away' }, { silent: true });
-      should.not.exist(tester.validate());
-    });
-
-    it('should validate when using mixed choices', function () {
-      tester.set({ mixed: 5.5 }, { silent: true });
-      should.not.exist(tester.validate());
-    });
-
-    it('should invalidate when using mixed choices', function () {
-      tester.set({ mixed: 5.1 }, { silent: true });
-      should.exist(tester.validate());
-    });
-
-  });
-
-  describe('and it has fields with custom validators, it:', function () {
-
-    before(function () {
-      TestModel.prototype.schema = {
-          startDate: {
-            type: Date,
-            validators: [
-              function (val) {
-                var endDate = this.get('endDate');
-                if (endDate && endDate < val) {
-                  return 'Start date cannot be after end date';
-                }
-              }
-            ]
-          }
-        , endDate: {
-          type: Date,
-          validators: [
-            function (val) {
-              var startDate = this.get('startDate');
-              if (startDate && startDate > val) {
-                return 'End date cannot be before start date';
-              }
-            }
-          ]
-        }
-      };
-    });
-
-    it('should not validate when a start date is after an end date', function () {
-      tester.set({
-          startDate: new Date('2012-01-01')
-        , endDate: new Date('2011-01-01')
-      }, { silent: true });
-      should.exist(tester.validate());
-    });
-
-    it('should validate when a start date is before an end date', function () {
-      tester.set({
-        startDate: new Date('2012-01-01')
-      , endDate: new Date('2013-01-01')
-      }, { silent: true });
-      should.not.exist(tester.validate());
-    });
-
-  });
-
-  describe('and it is in strict schema mode, it:', function () {
-
-    before(function () {
-      TestModel.prototype.schema = {
-        _isStrict: true
-      , attr1: String
-      };
-    });
-
-    it('should not validate when an unspecified attribute is set', function () {
-      tester.set({ attr2: 'foobar' }, { silent: true });
-      should.exist(tester.validate());
-    });
-
-    it('should validate when all attributes are in the schema', function () {
-      tester.set({ attr1: 'foobar' }, { silent: true });
-      should.not.exist(tester.validate());
-    });
-
   });
 
 });

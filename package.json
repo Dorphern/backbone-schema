@@ -1,5 +1,5 @@
 {   
-  "name": "backbone-schema", 
+  "name": "backbone-schemoose", 
   "author": "Kristoffer Dorph <kristofferdo@gmail.com>",
   "version": "0.8.0", 
   "description": "Forced schemas for Backbone models.", 
