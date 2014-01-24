@@ -2,14 +2,16 @@
  * Schema types: String, Number, Date, Boolean, Array
  *
  * Field Options: 
- *  required: Boolean
- *  default: *Same as schema type*
- *  min: Number
- *  max: Number
- *  get: Function
- *  set: Function   
- *  validate: [Function] 
- *  (unique): Boolean
+ *   type: Schema Type
+ *   enforceType: Boolean
+ *   required: Boolean
+ *   default: *Same as schema type*
+ *   min: Number
+ *   max: Number
+ *   get: Function
+ *   set: Function   
+ *   validate: [Function] 
+ *   (unique): Boolean
  */
 
 
@@ -54,6 +56,7 @@
 
   _.extend(Backbone.Model.prototype, {
 
+    /* Validate Schema */
     validateSchema: function() {
       var schema = this.schema || {}
       ,   attrs = this.attributes;
@@ -79,9 +82,64 @@
       }
     },
 
+    /* Default validation */
     validate: function(attrs) {
       return this.validateSchema();
-    }
+    },
+
+    get: _.wrap(Backbone.Model.prototype.get, function (fn, attribute) {
+
+      var value   = fn.call(this, attribute)
+      ,   field   = this.schema[attribute]
+      ,   getter  = field && field.get;
+
+      return getter && getter.call(this, attribute, value) || value || field.default || field && null;
+
+    }),
+
+
+    set: _.wrap(Backbone.Model.prototype.set, function (fn, key, value, options) {
+
+      var attributes;
+
+      if (!key || _.isObject(key)) {
+          attributes = key;
+          options = value;
+      } else {
+          (attributes = {})[key] = value;
+      }
+
+      var values  = {}
+      ,   schema  = this.schema
+      ,   _this   = this;
+
+      _.each(attributes, function(value, attribute, attrs) {
+        var field   = schema[attribute]
+        ,   setter  = field && field.set
+        ,   result  = setter && setter.call(_this, attribute, value) || value;
+
+        if (!_.isUndefined(result))
+          values[attribute] = result;
+      });
+
+      fn.call(this, values, options);
+      return this;
+
+    }),
+
+
+    toJSON: _.wrap(Backbone.Model.prototype.toJSON, function(fn, options) {
+
+      var json = {}; //fn.call(this, options);
+
+      for (var key in this.schema) {
+        json[key] = this.get(key);
+      }
+
+      return json;
+
+    })
+
 
   });
 
