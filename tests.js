@@ -282,15 +282,27 @@ describe('Backbone.Model.schema', function () {
       beforeEach(function() {
         model = new (Backbone.Model.extend({
           schema: {
-            firstName: String
+            maxNumber: { type: Number, min: 20, max: 30 }
           }
         }))();
       });
 
-      it('should validate when value is lower than max', function() {  });
-      it('should validate when value is higher than min', function() {  });
-      it('should not validate when value is higher than max', function() {  });
-      it('should not validate when value is lower than min', function() {  });
+      it('should validate when value is lower than max', function() {  
+        model.set({ maxNumber: 20 }, { silent: true });
+        expect(model.isValid()).to.be.true;
+      });
+      it('should validate when value is higher than min', function() {  
+        model.set({ maxNumber: 25 }, { silent: true });
+        expect(model.isValid()).to.be.true;
+      });
+      it('should not validate when value is higher than max', function() {  
+        model.set({ maxNumber: 40 }, { silent: true });
+        expect(model.isValid()).to.be.false;
+      });
+      it('should not validate when value is lower than min', function() {  
+        model.set({ maxNumber: 10 }, { silent: true });
+        expect(model.isValid()).to.be.false;
+      });
 
     });
 
@@ -330,4 +342,45 @@ describe('Backbone.Model.schema', function () {
 
 
   });
+  
+
+  /*
+  describe('Relations', function () {
+    var Person, Company, personCollection, companyCollection;
+
+    beforeEach(function() {
+      Person = Backbone.Model.extend({
+        schema: {
+          name: String,
+          company: { type: Backbone.HasOne, model: Company, collection: companyCollection }
+        }
+      });
+
+      Company = Backbone.Model.extend({
+        schema: {
+          name: String,
+          employees: { type: Backbone.HasMany, collection: personCollection }
+        }
+      });
+
+      var CompanyCollection = Backbone.Collection.extend({ model: Company })
+      companyCollection = new CompanyCollection();
+
+      var PersonCollection = Backbone.Collection.extend({ model: Person })
+      personCollection = new PersonCollection();
+    });
+
+
+    describe('HasOne', function() {
+
+      it('adds models to target collection when created', function() {
+        var lego = new Company({ employees: { name: 'peter' } });
+        console.log(lego.get('employees').at(0));
+      })
+
+    });
+
+  });
+  */
+
 });
